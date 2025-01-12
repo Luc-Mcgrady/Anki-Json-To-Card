@@ -48,7 +48,7 @@ class InputDialog(QDialog):
         model = mw.col.models.by_name("Basic")
         note = Note(mw.col, model)
 
-        note.fields[0] = self.get_input_text()
+        note.fields[0] = f"<pre>{json.dumps(data, indent=2)}</pre>"
 
         mw.col.add_note(note, did)
         cid = note.card_ids()[0]
@@ -67,7 +67,6 @@ class InputDialog(QDialog):
                 );
             """, *revlog["row"])
         
-        mw.col.save()
         mw.col.compute_memory_state(cid)
 
         return super().accept()
