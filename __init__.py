@@ -38,7 +38,12 @@ class InputDialog(QDialog):
     def accept(self) -> None:
         data = json.loads(self.get_input_text())
 
-        did = mw.col.decks.id(f"DEBUG_CARDS::${data['config']['id']}")
+        import_config_id = data['config']['id']
+        did = mw.col.decks.id(f"DEBUG_CARDS::${import_config_id}")
+        deck = mw.col.decks.get(did)
+
+        new_config = mw.col.decks.add_config(str(import_config_id), data['config'])
+        mw.col.decks.set_config_id_for_deck_dict(deck, new_config["id"])
 
         model = mw.col.models.by_name("Basic")
         note = Note(mw.col, model)
@@ -62,7 +67,8 @@ class InputDialog(QDialog):
                 );
             """, *revlog["row"])
         
-        mw.col.compute_memory_state(cid) # Recalculate memory state
+        mw.col.save()
+        mw.col.compute_memory_state(cid)
 
         return super().accept()
 
