@@ -1,7 +1,6 @@
 from aqt import mw, QAction, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox, QDialog
 from anki.notes import Note
-from anki.decks import Deck
-from anki.errors import NotFoundError
+from anki.cards import FSRSMemoryState
 import json
 
 class InputDialog(QDialog):
@@ -51,8 +50,18 @@ class InputDialog(QDialog):
         note.fields[0] = f"<pre>{json.dumps(data, indent=2)}</pre>"
 
         mw.col.add_note(note, did)
-        cid = note.card_ids()[0]
 
+        data["cardRow"][1] = note.id
+        data["cardRow"][2] = did
+        mw.col.db.execute("""
+        REPLACE INTO cards
+            ("id", "nid", "did", "ord", "mod", "usn", "type", "queue", "due", "ivl", "factor", "reps", "lapses", "left", "odue", "odid", "flags", "data")
+        VALUES 
+            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+            *data["cardRow"]
+        )
+
+        cid = data["cardRow"][0]
         for revlog in reversed(data["revlog"]):
             revlog["row"][1] = cid
             revlog["row"][2] = -1
@@ -60,7 +69,7 @@ class InputDialog(QDialog):
             revlog["row"][0] += 1 # Prevent overwriting actual cards
 
             mw.col.db.execute(f"""
-                INSERT INTO revlog (
+                REPLACE INTO revlog (
                     id, cid, usn, ease, ivl, lastIvl, factor, time, type
                 ) VALUES (
                     ?, ?, ?, ?, ?, ?, ?, ?, ?
