@@ -1,4 +1,7 @@
 from aqt import mw, QAction, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox, QDialog
+from anki.notes import Note
+from anki.decks import Deck
+import json
 
 class InputDialog(QDialog):
     def __init__(self):
@@ -32,7 +35,18 @@ class InputDialog(QDialog):
         return self.text_input.text()
 
     def accept(self) -> None:
-        print(self.get_input_text())
+        data = json.loads(self.get_input_text())
+
+        mw.checkpoint("Import note from debug data")
+
+        did = mw.col.decks.id(f"DEBUG_CARDS::${data['config']['id']}")
+
+        model = mw.col.models.by_name("Basic")
+        note = Note(mw.col, model)
+
+        note.fields[0] = self.get_input_text()
+
+        mw.col.add_note(note, did)
 
         return super().accept()
 
