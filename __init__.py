@@ -1,6 +1,7 @@
 from aqt import mw, QAction, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox, QDialog
 from anki.notes import Note
 from anki.decks import Deck
+from anki.errors import NotFoundError
 import json
 
 class InputDialog(QDialog):
@@ -37,8 +38,6 @@ class InputDialog(QDialog):
     def accept(self) -> None:
         data = json.loads(self.get_input_text())
 
-        mw.checkpoint("Import note from debug data")
-
         did = mw.col.decks.id(f"DEBUG_CARDS::${data['config']['id']}")
 
         model = mw.col.models.by_name("Basic")
@@ -47,10 +46,30 @@ class InputDialog(QDialog):
         note.fields[0] = self.get_input_text()
 
         mw.col.add_note(note, did)
+        cid = note.card_ids()[0]
+
+        for revlog in reversed(data["revlog"]):
+            revlog["row"][1] = cid
+            revlog["row"][2] = -1
+
+            revlog["row"][0] += 1 # Prevent overwriting actual cards
+
+            mw.col.db.execute(f"""
+                INSERT INTO revlog (
+                    id, cid, usn, ease, ivl, lastIvl, factor, time, type
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?
+                );
+            """, *revlog["row"])
+        
+        mw.col.compute_memory_state(cid) # Recalculate memory state
 
         return super().accept()
 
 def showInputMenu():
+
+
+
     menu = InputDialog()
 
     menu.exec()
