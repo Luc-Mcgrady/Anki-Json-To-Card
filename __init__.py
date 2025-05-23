@@ -18,6 +18,7 @@ class InputDialog(QDialog):
 
         # Text input
         self.text_input = QLineEdit(self)
+        self.text_input.setMaxLength(2147483647)
         layout.addWidget(self.text_input)
 
         # Buttons
